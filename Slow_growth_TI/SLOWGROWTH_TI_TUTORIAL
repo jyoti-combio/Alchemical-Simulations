@@ -1,0 +1,136 @@
+
+************************************
+SLOW GROWTH TI SIMULATION TUTIORIAL 
+************************************
+
+####################################################
+PMX Library
+####################################################
+
+##Installation dir
+ /usr/local/anaconda3/lib/python3.10/site-packages
+ 
+ /usr/local/anaconda3/lib/python3.10/site-packages/pmx-0+untagged.880.g7418dab-py3.10-linux-x86_64.egg/pmx/data/
+ 
+##Mutation force-fields
+ /usr/local/anaconda3/lib/python3.10/site-packages/pmx-0+untagged.880.g7418dab-py3.10-linux-x86_64.egg/pmx/data/mutff
+
+##Set Path for GMXLIB
+
+export GMXLIB=$GMXLIB:/usr/local/anaconda3/lib/python3.10/site-packages/pmx-0+untagged.880.g7418dab-py3.10-linux-x86_64.egg/pmx/data/mutff
+echo $GMXLIB
+
+####################################################
+PMX Library on cluster (premise)
+###################################################
+
+module load anaconda/colsa
+conda activate pmx-4.1.3
+
+pmx gmxlib 
+export GMXLIB=/mnt/lustre/software/anaconda/colsa/envs/pmx-4.1.3/lib/python3.7/site-packages/pmx/data/mutff
+
+
+
+####################################################
+PMX TOPOLOGY GENERATION
+####################################################
+
+
+##Prepare the structure file using pdb2gmx with mut forcefields
+
+gmx pdb2gmx -f peptide.pdb -o peptide.pdb -water tip3p -ignh
+
+##Input processed structure file to insert mutation
+##output is a structure file with a hybrid amino acid 
+
+mutate.py -f peptide.pdb -o mutant.pdb -ff 
+
+##create topology file
+
+gmx pdb2gmx -f mutant.pdb -o mut_pdb2gmx.pdb -ff -water tip3p
+
+##Adding topology parameters for state B by generating hybrid topology script
+
+python generate_hybrid_topology.py -p topol.top -o hybrid.top -ff 
+
+##########################################################
+PMX TOPOLOGY WITH PMX COMMAND 
+##########################################################
+
+$ pmx mutate -f protein.pdb -o mutant.pdb
+
+$ gmx pdb2gmx -f mutant.pdb -o conf.pdb -p topol.top -ff amber99sb-star-ildn-mut -water tip3p
+
+$ pmx gentop -p topol.top -o newtop.top
+
+##Now with the conf.pdb and newtop.top files you are ready to setup the system as you would do for a typical Gromacs simulation.
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&
+The above thee steps of amino acid mutation and topology generation can be performed using the webserver.
+(http://pmx.mpibpc.mpg.de/)
+
+###OUTPUT from webserver has, hybrid.pdb, hybrid.top, hybrid.itp and porse.itp files. 
+&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+#################################################
+SYSTEM PREPARATION
+#################################################
+
+##generate box 
+gmx editconf -f hybrid.pdb -o box.gro -c -d 1.0 -bt cubic
+
+##solvation
+gmx solvate -cp box.gro -cs spc216.gro -o solv.gro -p hybrid.top
+
+##neutralize the system 
+gmx grompp -f ions.mdp -c solv.gro -p hybrid.top -o ions.tpr
+gmx genion -s ions.tpr -o solv_ions.gro -p hybrid.top -pname NA -nname CL -neutral
+
+##Energy minimization 
+gmx grompp -f em.mdp -c solv_ions.gro -p hybrid.top -o em.tpr
+gmx mdrun -v -deffnm em
+
+################################################
+EQUILIBRATION
+################################################vi em.mdp 
+
+##NOTE:the tutorial has only one step of npt eq performed, we can eq our system as needed. 
+
+##npt equilibration
+gmx grompp -f eq.mdp -c em.gro -p hybrid.top 
+gmx mdrun -v -ntomp 2 -nice 0 -c eq.gro -ntmpi 1
+
+###############################################
+SLOW GROWTH THERMODYNAMIC INTEGRATION SIMULATION
+###############################################
+
+##Production run with slow growth TI 
+gmx grompp -f md.mdp -c eq.gro -p hybrid.top
+gmx mdrun -v -ntomp 2 -nice 0 -c md.gro -ntmpi 1 
+
+##############################################
+SLOW GROWTH TI ANALYSIS
+##############################################
+
+##OUTPUT from simualtion generates dhdl curve with respect to time. Hence, we get the time average of dhdl
+gmx analyze -f dhdl.xvg -integrate
+
+##The dH/dl curve generated over 100 ps simulation is integrated from 0 to 100. To get the correct integral in this case simply divide the obtained value by 100 (time).
+##The integrated values gives the free energy estimates.
+
+
+###############################################
+TUTORIAL COMPLETE
+###############################################
+
+
+
+
+
+
+
+
+
+
