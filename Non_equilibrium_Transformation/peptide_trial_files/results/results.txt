@@ -1,0 +1,6 @@
+# analyze_crooks.py, pmx version = 0+untagged.880.g7418dab
+# pwd = /home/jv1153/projects/Free_energy_methods/Non_equil/trp_cage_try/results
+# Tue Nov  7 13:04:21 2023 (jv1153)
+# command = analyze_dhdl2.py -fA stateA/dhdlA1.xvg stateA/dhdlA2.xvg stateA/dhdlA3.xvg stateA/dhdlA4.xvg stateA/dhdlA5.xvg -fB stateB/dhdlB1.xvg stateB/dhdlB2.xvg stateB/dhdlB3.xvg stateB/dhdlB4.xvg stateB/dhdlB5.xvg
+
+

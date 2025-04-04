@@ -1,0 +1,79 @@
+#############################################################
+NON-EQUILIBRIUM SIMULATION ANALYSIS
+#############################################################
+
+***************************************************
+Bennet Acceptance Ratio (BAR)
+
+Crooks Gaussian Intersection (CGI)
+
+Jarzynski equality (Jarz)
+**************************************************
+
+FROM PYTHON IMPORT 
+
+>from glob import glob
+
+>from pmx.analysis import read_dgdl_files
+
+>from pmx.estimators import BAR
+
+## get dgdl.xvg files for the forward and reverse transitions
+
+>ff = glob('for*.xvg')  # forward
+
+>fr = glob('rev*.xvg')  # reverse
+
+## now get integrated work values from them
+
+>wf = read_dgdl_files(ff, verbose=False)
+
+>wr = read_dgdl_files(fr, verbose=False)
+
+**********************************************************
+Bennet Acceptance Ratio (BAR)
+**********************************************************
+# use BAR to estimate the free energy difference
+
+>bar = BAR(wf=wf, wr=wr, T=298)
+
+# print estimated dG and its uncertainty
+
+>print('%.2f +/- %.2f kJ/mol' % (bar.dg, bar.err))
+ 
+
+***********************************************************
+Crooks Gaussian Intersection (CGI)
+***********************************************************
+>cgi = Crooks(wf=wf, wr=wr)
+
+>jarz = Jarz(wf=wf, wr=wr, T=298)
+
+# print Crooks estimate
+
+>print('%.2f kJ/mol' % cgi.dg)
+
+***********************************************************
+Bootstrap
+***********************************************************
+
+>>bar = BAR(wf=wf, wr=wr, T=298, nboots=100)
+
+>>print('%.2f kJ/mol' % bar.err_boot)
+
+>>cgi = Crooks(wf=wf, wr=wr, nboots=100)
+>>print('%.2f kJ/mol' % cgi.err_boot1)
+>>print('%.2f kJ/mol' % cgi.err_boot2)
+
+**********************************************************
+Work distribution plot
+**********************************************************
+
+>>from pmx.analysis import plot_work_dist
+
+# write distribution plot to 'Wdist.png'
+
+>>plot_work_dist(wf=wf, wr=wr, nbins=10, dG=cgi.dg, dGerr=cgi.err_boot1)
+
+
+
